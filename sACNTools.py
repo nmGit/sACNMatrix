@@ -1,9 +1,11 @@
 import socket
 import pprint
+import struct
 import numpy as np
 seqnum = 0
-def init():
-    seqnum = 0
+sock = 0
+
+
 def bytesToInt(ba):
     result = 0
     i = 0
@@ -54,30 +56,31 @@ def dump(packet):
     print "#############################################################"
     pp = pprint.PrettyPrinter(indent = 2)
     pp.pprint(packet)
+
 def capturesACN():
+    global sock
     print "Running ACN capture..."
 
-    UDP_IP = "127.0.0.1"  # Loopback IP
-    UDP_PORT = 5568  # ACN-SDT
-
-    # Create UDP socket
-    sock = socket.socket(socket.AF_INET,  # Use internet protocol
-                         socket.SOCK_DGRAM)  # Receive UDP
-    # Bind our new socket to the IP address and port
-    sock.bind((UDP_IP, UDP_PORT))
     # Receive with buffer size of 1024 bytes.
     # The ACN packets received will be <700 bytes
     # So 1024 is sufficient. This is a blocking call.
     data, addr = sock.recvfrom(1024)
+    #print "received from:",addr
     if (data[4:16] == "ASC-E1.17\0\0\0"):
         ACN = ACNData(data)
         dump(ACN)
-        print data
+        #print data
         #print ACN["DMP"]["propertyValues"]
     else:
         print id, "Not sACN"
 
 def sendsACN(universe, startcode, dmxData):
+    global seqnum
+    global sock
+
+    if not (type(dmxData) is list):
+        return
+
     seqnum = seqnum+1
     data = [0]*638
     data[0:2] = [1,6]
@@ -106,24 +109,40 @@ def sendsACN(universe, startcode, dmxData):
     data[119:121] = [0,0]
     data[121:123] = [0,1]
     data[123:125] = [2,1]
-    data[125:638] = [startcode].append(dmxData)
+    rawdat = [startcode]
+    rawdat.extend(dmxData)
+    data[125:638] = rawdat
 
-    UDP_IP = "127.0.0.1"  # Loopback IP
-    UDP_PORT = 5568  # ACN-SDT
 
-    # Create UDP socket
-    sock = socket.socket(socket.AF_INET,  # Use internet protocol
-                         socket.SOCK_DGRAM)  # Receive UDP
-    # Bind our new socket to the IP address and port
-    sock.bind((UDP_IP, UDP_PORT))
 
 
     # Receive with buffer size of 1024 bytes.
     # The ACN packets received will be <700 bytes
     # So 1024 is sufficient. This is a blocking call.
+    print "sending..."
+    print data
+    data = [chr(b) if b<256 else chr(0) for b in data]
 
-    sock.send(data)
+    sock.send("".join(data),  ("239.255.0.1", 5568))
+    print "done sending..."
+def init(ip):
+    global sock
+  # Create UDP socket
+    sock = socket.socket(socket.AF_INET,  # Use internet protocol
+                        socket.SOCK_DGRAM)  # Receive UDP
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
+    # Bind our new socket to the IP address and port
+    print "binding to port..."
 
-
-
-
+    UDP_IP = ip  # Loopback IP
+    UDP_PORT = 5568  # ACN-SDT
+    #sock.bind((UDP_IP, UDP_PORT))
+    #sock.listen(1)
+    sock.bind(('', UDP_PORT))
+    multicast_group = "239.255.0.1"
+    group = socket.inet_aton(multicast_group)
+    mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+    #sock.connect((UDP_IP, UDP_PORT))
+    #sock.listen(1)
+    #conn, addr = sock.accept()

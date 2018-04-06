@@ -21,14 +21,13 @@ def getScreenPixels(pxx, pxy):
         rr = [r<<0 for r in sct_img.raw[0::4]]
         for i,b in enumerate(bb):
             pixels.append(rr[i]|gg[i]|bb[i]|0x00)
-           # pixels.append(rr[i]|0|0)
-
-       # print pixels[1:16]
-        pixels = np.array(pixels)
-        #pixels = np.array(zip(
-         #                   sct_img.raw[3::4],
-          #                  sct_img.raw[2::4],
-           #                 sct_img.raw[1::4],
-            #                sct_img.raw[0::4],))
+        #pixels = np.array(pixels)
+        pixels = np.array(zip(
+                            sct_img.raw[3::4],
+                            sct_img.raw[2::4],
+                            sct_img.raw[1::4],
+                            sct_img.raw[0::4],))
+        pixels = pixels.flatten('C')
+       # print pixels
         #print pixels.shape
         return pixels

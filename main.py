@@ -1,61 +1,47 @@
-import sACNCapture
+import sACNTools
 import screenCapture
 import rasterViewer
-import numpy as np
-import threading
-import time
+import ACNCaptureWorker
+import ACNStreamWorker
+import ScreenCaptureWorker
 import sys
+
 from PyQt4 import QtCore, QtGui
 x = 32
 y =32
 
-class ACNStreamer(QtGui.QMainWindow):
+class Main(QtGui.QMainWindow):
     capData = []
     def __init__(self):
-        super(ACNStreamer, self).__init__()
-        self.scrnCapThread = ACNCaptureWorker()
+        super(Main, self).__init__()
+        print "Initializing sACN"
+        sACNTools.init("127.0.0.1")
 
-        print "starting thread"
-        self.scrnCapThread.setMainThread(self)
-        self.scrnCapThread.start()
-        self.scrnCapThread.screenCap()
-
-        print "creating raster viewer"
+        print "Creating raster viewer on main thread..."
         self.imageLabel = rasterViewer.rasterViewer(x,y)
         self.imageLabel.show()
         self.imageLabel.setCallback(self.getData)
         self.setCentralWidget(self.imageLabel)
 
+        print "Starting screen capture worker thread..."
+        self.scrnCapThread = ScreenCaptureWorker.ScreenCaptureWorker(x,y)
+        self.scrnCapThread.setMainThread(self)
+        self.scrnCapThread.start()
+
+        print "Starting sACN stream worker thread..."
+        self.sACNStream = ACNStreamWorker.ACNStreamWorker()
+        self.sACNStream.setMainThread(self)
+        self.sACNStream.start()
+
     def getData(self):
         return self.capData
+
     def setData(self, data):
         self.capData = data
-
-class ACNCaptureWorker(QtCore.QThread):
-    mainThread = 0
-    capData = []
-    def run(self):
-        while(True):
-            print "Hi"
-            self.sleep(2)
-    def setMainThread(self,m):
-        self.mainThread = m
-    def screenCap(self):
-
-        #print "Getting caputre"
-        self.capData =  screenCapture.getScreenPixels(x,y)
-        self.mainThread.setData(self.capData)
-        threading.Timer(0.033, self.screenCap).start()
-
-        # ras = rasterViewer.rasterViewer(x,y)
-        # ras.setCallback(getscrnpixelscb)
-        #
-        # ras.show()
-        # ras.start()
 
 if __name__ == '__main__':
     print "starting..."
     app = QtGui.QApplication(sys.argv)
-    main = ACNStreamer()
+    main = Main()
     main.show()
     sys.exit(app.exec_())
