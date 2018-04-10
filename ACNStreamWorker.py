@@ -22,14 +22,14 @@ class ACNStreamWorker(QtCore.QThread):
         while(1):
 
             self.data = self.mainThread.getData()
-            print self.data
+            #print self.data
             self.numUniverses = len(self.data) / self.universeSize
-            print "number of universes:",self.numUniverses
+            #print "number of universes:",self.numUniverses
             for i in range(self.numUniverses):
                 unidata = []
                 for y in range(self.universeSize):
                     unidata.append(self.data[i*self.universeSize+y])
-                print "sending universe:",i, unidata
+               # print "sending universe:",i, unidata
                 sACNTools.sendsACN(i,0,unidata)
 
 

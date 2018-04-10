@@ -1,6 +1,7 @@
 import socket
 import pprint
 import struct
+import traceback
 import numpy as np
 seqnum = 0
 sock = 0
@@ -65,7 +66,7 @@ def capturesACN():
     # The ACN packets received will be <700 bytes
     # So 1024 is sufficient. This is a blocking call.
     data, addr = sock.recvfrom(1024)
-    #print "received from:",addr
+   # print "received from:",addr
     if (data[4:16] == "ASC-E1.17\0\0\0"):
         ACN = ACNData(data)
         return ACN
@@ -100,8 +101,8 @@ def sendsACN(universe, startcode, dmxData):
     data[109:111] = [0,0] # Sync address
     data[111] = seqnum
     data[112] = 40
-    data[113] = universe & 0x00FF # universe high
-    data[114] = universe & 0xFF00 # universe low
+    data[113] = universe & 0xFF00 # universe high
+    data[114] = universe & 0x00FF # universe low
     data[115] = 112 & 0xF0
     data[115] = (523 & 0x0F) # PDU Length High
     data[116] = (523 & 0x00FF) # PDU Length Low
@@ -120,17 +121,24 @@ def sendsACN(universe, startcode, dmxData):
     # Receive with buffer size of 1024 bytes.
     # The ACN packets received will be <700 bytes
     # So 1024 is sufficient. This is a blocking call.
-    print "sending..."
-    print data
+   # print "sending..."
+   # print data
     data = [chr(b) if b<256 else chr(0) for b in data]
+    try:
+       sock.sendto("".join(data),
+                ('239.255.0.1', 5568))
+        #sock.send("".join(data))
+    except:
+       # print data
+        traceback.print_exc()
 
-    sock.send("".join(data),  ("239.255.0.1", 5568))
-    print "done sending..."
+  #  print "done sending..."
 def init(ip):
     global sock
   # Create UDP socket
     sock = socket.socket(socket.AF_INET,  # Use internet protocol
-                        socket.SOCK_DGRAM)  # Receive UDP
+                        socket.SOCK_DGRAM,
+                        socket.IPPROTO_UDP)  # Receive UDP
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
     # Bind our new socket to the IP address and port
     print "binding to port..."
@@ -144,6 +152,7 @@ def init(ip):
     group = socket.inet_aton(multicast_group)
     mreq = struct.pack('4sL', group, socket.INADDR_ANY)
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+    print "done binding."
     #sock.connect((UDP_IP, UDP_PORT))
     #sock.listen(1)
     #conn, addr = sock.accept()
