@@ -47,7 +47,7 @@ def ACNData(data):
             "firstPropertyAdress": bytesToInt(data[119:121]),
             "addressIncrement": data[121:123],  #
             "propertyValueCount": data[123:125],
-            "propertyValues": [ord(d) for d in data[125:638]],
+            "propertyValues": [ord(d) for d in data[126:638]],
         }
     }
     return ACNDataPacket
@@ -59,7 +59,7 @@ def dump(packet):
 
 def capturesACN():
     global sock
-    print "Running ACN capture..."
+    #print "Running ACN capture..."
 
     # Receive with buffer size of 1024 bytes.
     # The ACN packets received will be <700 bytes
@@ -68,7 +68,8 @@ def capturesACN():
     #print "received from:",addr
     if (data[4:16] == "ASC-E1.17\0\0\0"):
         ACN = ACNData(data)
-        dump(ACN)
+        return ACN
+        #dump(ACN)
         #print data
         #print ACN["DMP"]["propertyValues"]
     else:
